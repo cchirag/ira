@@ -34,7 +34,7 @@ The daemon binary is embedded into the client, so you only need to run the clien
 
 1. Clone the repository:
 ```bash
-git clone <your-repo-url>
+git clone git@github.com:cchirag/ira.git
 cd ira
 ```
 
