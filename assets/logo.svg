@@ -1,0 +1,22 @@
+<svg width="300" height="200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="300" height="200" fill="transparent"/>
+  
+  <!-- Text "ir" -->
+  <text x="50" y="130" font-family="Arial, Helvetica, sans-serif" font-size="100" font-weight="900" fill="#2d2d2d">ir</text>
+  
+  <!-- Terminal window (replacing 'a') -->
+  <g transform="translate(125, 50)">
+    <!-- Outer rounded rectangle -->
+    <rect x="0" y="0" width="120" height="90" rx="8" fill="#2d2d2d"/>
+    
+    <!-- Inner screen area -->
+    <rect x="8" y="8" width="104" height="74" rx="4" fill="#1a1a1a"/>
+    
+    <!-- Command prompt ">" -->
+    <text x="20" y="55" font-family="monospace" font-size="28" font-weight="700" fill="#ffffff">&gt;</text>
+    
+    <!-- Cursor "_" -->
+    <rect x="45" y="45" width="20" height="4" fill="#ffffff"/>
+  </g>
+</svg>

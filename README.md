@@ -1,3 +1,4 @@
+![logo](assets/logo.svg)
 # Ira
 
 A minimal terminal multiplexer built for personal use and learning.
