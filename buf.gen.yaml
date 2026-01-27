@@ -1,0 +1,17 @@
+version: v1
+
+managed:
+  enabled: false
+  go_package_prefix:
+    default: github.com/cchirag/ira
+
+plugins:
+  - plugin: go
+    out: proto/gen
+    opt:
+      - paths=source_relative
+
+  - plugin: go-grpc
+    out: proto/gen
+    opt:
+      - paths=source_relative

@@ -1,0 +1,66 @@
+version: "3"
+
+vars:
+  DAEMON_BIN: bin/irad/irad{{exeExt}}
+  CLIENT_BIN: bin/ira/ira{{exeExt}}
+  EMBED_DIR: cmd/ira/bin
+
+tasks:
+  build:daemon:
+    desc: Build irad, the daemon
+    sources:
+      - cmd/irad/**/*.go
+    generates:
+      - "{{.DAEMON_BIN}}"
+    cmds:
+      - go build -o {{.DAEMON_BIN}} cmd/irad/main.go
+
+  run:daemon:
+    desc: Run irad, the daemon
+    cmds:
+      - go run cmd/irad/main.go
+
+  copy:daemon:
+    desc: Copy the daemon binary into the main package of client
+    internal: true
+    deps: [build:daemon]
+    sources:
+      - "{{.DAEMON_BIN}}"
+    generates:
+      - "{{.EMBED_DIR}}/irad{{exeExt}}"
+    cmds:
+      - mkdir -p {{.EMBED_DIR}}
+      - cp {{.DAEMON_BIN}} {{.EMBED_DIR}}/
+
+  build:client:
+    desc: Build ira client
+    deps: [copy:daemon]
+    sources:
+      - cmd/ira/**/*.go
+      - "{{.EMBED_DIR}}/irad{{exeExt}}"
+    generates:
+      - "{{.CLIENT_BIN}}"
+    cmds:
+      - go build -o {{.CLIENT_BIN}} cmd/ira/main.go
+
+  run:client:
+    desc: Run ira client
+    deps: [copy:daemon]
+    cmds:
+      - go run cmd/ira/main.go
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf bin {{.EMBED_DIR}}
+
+  gen:
+    desc: Generate grpc client and server code
+    cmds:
+      - buf generate
+  setup:
+    desc: Setup project (generate code, install dependencies, etc.)
+    cmds:
+      - go mod tidy
+      - task: clean
+      - task: gen

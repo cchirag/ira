@@ -1,0 +1,11 @@
+info:
+  name: Ping
+  type: grpc
+  seq: 1
+
+grpc:
+  url: "{{HOST}}:{{PORT}}"
+  method: /root.v1.RootService/Ping
+  methodType: unary
+  message: "{}"
+  auth: inherit

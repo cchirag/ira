@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package root.v1;
+
+option go_package = "github.com/cchirag/ira/proto/gen/services/root/v1;protov1";
+
+service RootService {
+  rpc Ping(PingRequest) returns (PingResponse);
+}
+
+message PingRequest {}
+
+message PingResponse {
+  bool db = 1;
+}
