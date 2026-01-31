@@ -9,29 +9,38 @@ import (
 	"go.etcd.io/bbolt"
 )
 
-var ErrPaneNotFound = errors.New("pane not found")
+var (
+	ErrPaneNotFound             = errors.New("pane not found")
+	ErrPaneBucketNotFound       = errors.New("pane bucket not found")
+	ErrPaneWindowBucketNotFound = errors.New("pane window bucket not found")
+)
 
 var paneBucketName = []byte("PANE")
 
 type PaneEntry struct {
-	ID          uuid.UUID `json:"id"`
-	SessionName string    `json:"sessionName"`
-	WindowName  string    `json:"windowName"`
-	Width       int32     `json:"width"`
-	Height      int32     `json:"height"`
-	X           int32     `json:"x"`
-	Y           int32     `json:"y"`
-	Cwd         string    `json:"cwd"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID         uuid.UUID `json:"id"`
+	SsessionID uuid.UUID `json:"sessionId"`
+	WindowID   uuid.UUID `json:"windowId"`
+	Width      int32     `json:"width"`
+	Height     int32     `json:"height"`
+	X          int32     `json:"x"`
+	Y          int32     `json:"y"`
+	Cwd        string    `json:"cwd"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
 }
 
-func NewPane(tx *bbolt.Tx, sessionName, windowName string, width, height, x, y int32, cwd string) (PaneEntry, error) {
+func NewPane(tx *bbolt.Tx, sessionId, windowId uuid.UUID, width, height, x, y int32, cwd string) (PaneEntry, error) {
 	if tx == nil {
 		return PaneEntry{}, ErrTxnNotFound
 	}
 
-	window, err := GetWindow(tx, sessionName, windowName)
+	session, err := GetSession(tx, sessionId)
+	if err != nil {
+		return PaneEntry{}, err
+	}
+
+	window, err := GetWindow(tx, sessionId, windowId)
 	if err != nil {
 		return PaneEntry{}, err
 	}
@@ -41,22 +50,22 @@ func NewPane(tx *bbolt.Tx, sessionName, windowName string, width, height, x, y i
 		return PaneEntry{}, err
 	}
 
-	windowBucket, err := bucket.CreateBucketIfNotExists([]byte(window.Name))
+	windowBucket, err := bucket.CreateBucketIfNotExists([]byte(window.ID.String()))
 	if err != nil {
 		return PaneEntry{}, err
 	}
 
 	pane := PaneEntry{
-		ID:          uuid.New(),
-		SessionName: sessionName,
-		WindowName:  window.Name,
-		Width:       width,
-		Height:      height,
-		X:           x,
-		Y:           y,
-		Cwd:         cwd,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		ID:         uuid.New(),
+		SsessionID: session.ID,
+		WindowID:   window.ID,
+		Width:      width,
+		Height:     height,
+		X:          x,
+		Y:          y,
+		Cwd:        cwd,
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
 	}
 
 	bytes, err := json.Marshal(pane)
@@ -72,24 +81,24 @@ func NewPane(tx *bbolt.Tx, sessionName, windowName string, width, height, x, y i
 	return pane, nil
 }
 
-func GetPane(tx *bbolt.Tx, sessionName, windowName string, id uuid.UUID) (PaneEntry, error) {
+func GetPane(tx *bbolt.Tx, sessionId, windowId uuid.UUID, id uuid.UUID) (PaneEntry, error) {
 	if tx == nil {
 		return PaneEntry{}, ErrTxnNotFound
 	}
 
-	window, err := GetWindow(tx, sessionName, windowName)
+	window, err := GetWindow(tx, sessionId, windowId)
 	if err != nil {
 		return PaneEntry{}, err
 	}
 
-	bucket, err := tx.CreateBucketIfNotExists(paneBucketName)
-	if err != nil {
-		return PaneEntry{}, err
+	bucket := tx.Bucket(paneBucketName)
+	if bucket == nil {
+		return PaneEntry{}, ErrPaneBucketNotFound
 	}
 
-	windowBucket, err := bucket.CreateBucketIfNotExists([]byte(window.Name))
-	if err != nil {
-		return PaneEntry{}, err
+	windowBucket := bucket.Bucket([]byte(window.ID.String()))
+	if windowBucket == nil {
+		return PaneEntry{}, ErrPaneWindowBucketNotFound
 	}
 
 	bytes := windowBucket.Get([]byte(id.String()))
@@ -106,24 +115,24 @@ func GetPane(tx *bbolt.Tx, sessionName, windowName string, id uuid.UUID) (PaneEn
 	return pane, nil
 }
 
-func GetPanes(tx *bbolt.Tx, sessionName, windowName string) ([]PaneEntry, error) {
+func GetPanes(tx *bbolt.Tx, sessionId, windowId uuid.UUID) ([]PaneEntry, error) {
 	if tx == nil {
 		return nil, ErrTxnNotFound
 	}
 
-	window, err := GetWindow(tx, sessionName, windowName)
+	window, err := GetWindow(tx, sessionId, windowId)
 	if err != nil {
 		return nil, err
 	}
 
-	bucket, err := tx.CreateBucketIfNotExists(paneBucketName)
-	if err != nil {
-		return nil, err
+	bucket := tx.Bucket(paneBucketName)
+	if bucket == nil {
+		return nil, ErrPaneBucketNotFound
 	}
 
-	windowBucket, err := bucket.CreateBucketIfNotExists([]byte(window.Name))
-	if err != nil {
-		return nil, err
+	windowBucket := bucket.Bucket([]byte(window.ID.String()))
+	if windowBucket == nil {
+		return nil, ErrPaneWindowBucketNotFound
 	}
 
 	panes := make([]PaneEntry, 0, windowBucket.Stats().KeyN)
@@ -142,12 +151,12 @@ func GetPanes(tx *bbolt.Tx, sessionName, windowName string) ([]PaneEntry, error)
 	return panes, nil
 }
 
-func DeletePane(tx *bbolt.Tx, sessionName, windowName string, id uuid.UUID) error {
+func DeletePane(tx *bbolt.Tx, sessionId, windowId uuid.UUID, id uuid.UUID) error {
 	if tx == nil {
 		return ErrTxnNotFound
 	}
 
-	window, err := GetWindow(tx, sessionName, windowName)
+	window, err := GetWindow(tx, sessionId, windowId)
 	if err != nil {
 		return err
 	}
@@ -157,7 +166,7 @@ func DeletePane(tx *bbolt.Tx, sessionName, windowName string, id uuid.UUID) erro
 		return err
 	}
 
-	windowBucket, err := bucket.CreateBucketIfNotExists([]byte(window.Name))
+	windowBucket, err := bucket.CreateBucketIfNotExists([]byte(window.ID.String()))
 	if err != nil {
 		return err
 	}
@@ -165,8 +174,12 @@ func DeletePane(tx *bbolt.Tx, sessionName, windowName string, id uuid.UUID) erro
 	return windowBucket.Delete([]byte(id.String()))
 }
 
-func UpdatePaneSize(tx *bbolt.Tx, sessionName, windowName string, id uuid.UUID, width, height int32) error {
-	pane, err := GetPane(tx, sessionName, windowName, id)
+func DeletePanes(tx *bbolt.Tx, sessionId, windowId uuid.UUID) error {
+	if tx == nil {
+		return ErrTxnNotFound
+	}
+
+	window, err := GetWindow(tx, sessionId, windowId)
 	if err != nil {
 		return err
 	}
@@ -176,7 +189,25 @@ func UpdatePaneSize(tx *bbolt.Tx, sessionName, windowName string, id uuid.UUID, 
 		return err
 	}
 
-	windowBucket, err := bucket.CreateBucketIfNotExists([]byte(pane.WindowName))
+	if err := bucket.DeleteBucket([]byte(window.ID.String())); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func UpdatePaneSize(tx *bbolt.Tx, sessionId, windowId uuid.UUID, id uuid.UUID, width, height int32) error {
+	pane, err := GetPane(tx, sessionId, windowId, id)
+	if err != nil {
+		return err
+	}
+
+	bucket, err := tx.CreateBucketIfNotExists(paneBucketName)
+	if err != nil {
+		return err
+	}
+
+	windowBucket, err := bucket.CreateBucketIfNotExists([]byte(windowId.String()))
 	if err != nil {
 		return err
 	}
@@ -191,8 +222,8 @@ func UpdatePaneSize(tx *bbolt.Tx, sessionName, windowName string, id uuid.UUID, 
 	return windowBucket.Put([]byte(id.String()), bytes)
 }
 
-func UpdatePanePosition(tx *bbolt.Tx, sessionName, windowName string, id uuid.UUID, x, y int32) error {
-	pane, err := GetPane(tx, sessionName, windowName, id)
+func UpdatePanePosition(tx *bbolt.Tx, sessionId, windowId uuid.UUID, id uuid.UUID, x, y int32) error {
+	pane, err := GetPane(tx, sessionId, windowId, id)
 	if err != nil {
 		return err
 	}
@@ -202,7 +233,7 @@ func UpdatePanePosition(tx *bbolt.Tx, sessionName, windowName string, id uuid.UU
 		return err
 	}
 
-	windowBucket, err := bucket.CreateBucketIfNotExists([]byte(pane.WindowName))
+	windowBucket, err := bucket.CreateBucketIfNotExists([]byte(windowId.String()))
 	if err != nil {
 		return err
 	}
@@ -217,8 +248,8 @@ func UpdatePanePosition(tx *bbolt.Tx, sessionName, windowName string, id uuid.UU
 	return windowBucket.Put([]byte(id.String()), bytes)
 }
 
-func UpdatePaneCwd(tx *bbolt.Tx, sessionName, windowName string, id uuid.UUID, cwd string) error {
-	pane, err := GetPane(tx, sessionName, windowName, id)
+func UpdatePaneCwd(tx *bbolt.Tx, sessionId, windowId uuid.UUID, id uuid.UUID, cwd string) error {
+	pane, err := GetPane(tx, sessionId, windowId, id)
 	if err != nil {
 		return err
 	}
@@ -228,7 +259,7 @@ func UpdatePaneCwd(tx *bbolt.Tx, sessionName, windowName string, id uuid.UUID, c
 		return err
 	}
 
-	windowBucket, err := bucket.CreateBucketIfNotExists([]byte(pane.WindowName))
+	windowBucket, err := bucket.CreateBucketIfNotExists([]byte(windowId.String()))
 	if err != nil {
 		return err
 	}

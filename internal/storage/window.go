@@ -37,12 +37,12 @@ var (
 var windowBucketName = []byte("WINDOW")
 
 type WindowEntry struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Index       int       `json:"index"`
-	SessionName string    `json:"sessionName"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Index     int       `json:"index"`
+	SessionID uuid.UUID `json:"sessionId"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 func NewWindow(tx *bbolt.Tx, sessionId uuid.UUID) (WindowEntry, error) {
@@ -75,12 +75,12 @@ func NewWindow(tx *bbolt.Tx, sessionId uuid.UUID) (WindowEntry, error) {
 	name := fmt.Sprintf("Window-%s", id)
 
 	window := WindowEntry{
-		ID:          uuid.New(),
-		Name:        name,
-		Index:       index,
-		SessionName: session.Name,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		ID:        uuid.New(),
+		Name:      name,
+		Index:     index,
+		SessionID: session.ID,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 
 	bytes, err := json.Marshal(window)
@@ -206,6 +206,27 @@ func DeleteWindows(tx *bbolt.Tx, sessionId uuid.UUID) error {
 
 	bucket, err := tx.CreateBucketIfNotExists(windowBucketName)
 	if err != nil {
+		return err
+	}
+
+	sessionBucket, err := bucket.CreateBucketIfNotExists([]byte(session.ID.String()))
+	if err != nil {
+		return err
+	}
+
+	if err := sessionBucket.ForEach(func(k, v []byte) error {
+		var window WindowEntry
+
+		if err := json.Unmarshal(v, &window); err != nil {
+			return err
+		}
+
+		if err := DeletePanes(tx, sessionId, window.ID); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
 		return err
 	}
 

@@ -329,15 +329,15 @@ func DeleteSession(tx *bbolt.Tx, id uuid.UUID) error {
 		return err
 	}
 
+	if err := DeleteWindows(tx, session.ID); err != nil {
+		return err
+	}
+
 	if err := bucket.Delete([]byte(session.ID.String())); err != nil {
 		return err
 	}
 
 	if err := lookupBucket.Delete([]byte(session.Name)); err != nil {
-		return err
-	}
-
-	if err := DeleteWindows(tx, session.ID); err != nil {
 		return err
 	}
 
