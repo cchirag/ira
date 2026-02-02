@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package session.v1;
+
+option go_package = "github.com/cchirag/ira/proto/gen/services/v1/root;rootProtoV1";
+
+service RootService {
+  rpc Ping(PingRequest) returns (PingResponse);
+  rpc NewSession(NewSessionRequest) returns (NewSessionResponse);
+  rpc Terminate(TerminateRequest) returns (TerminateResponse);
+}
+
+message PingRequest {}
+
+message PingResponse {
+  bool db = 1;
+}
+
+message NewSessionRequest {
+  string name = 1;
+}
+
+message NewSessionResponse {
+  string id = 1;
+  string name = 2;
+}
+
+message TerminateRequest {}
+
+message TerminateResponse {}

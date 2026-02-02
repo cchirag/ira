@@ -1,6 +1,4 @@
 name: dev
 variables:
-  - name: HOST
-    value: localhost
-  - name: PORT
-    value: "50051"
+  - secret: true
+    name: SOCKET

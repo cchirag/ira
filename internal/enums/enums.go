@@ -33,3 +33,35 @@ func ToSessionStatus(s string) (SessionStatus, error) {
 		return status, nil
 	}
 }
+
+type PaneType int
+
+const (
+	HSplit PaneType = iota
+	VSplit
+	Leaf
+)
+
+var PaneTypeName = map[PaneType]string{
+	HSplit: "HSPLIT",
+	VSplit: "VSPLIT",
+	Leaf:   "LEAF",
+}
+
+var PaneTypeValue = map[string]PaneType{
+	"HSPLIT": HSplit,
+	"VSPLIT": VSplit,
+	"LEAF":   Leaf,
+}
+
+func (p PaneType) String() string {
+	return PaneTypeName[p]
+}
+
+func ToPaneType(s string) (PaneType, error) {
+	if paneType, ok := PaneTypeValue[s]; !ok {
+		return Leaf, fmt.Errorf("unknown value %s", s)
+	} else {
+		return paneType, nil
+	}
+}

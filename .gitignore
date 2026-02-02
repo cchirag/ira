@@ -36,6 +36,9 @@ proto/gen/
 .env.local
 .env.*.local
 
+# Logs
+log/
+
 # IDEs and editors
 .DS_Store
 .vscode/

@@ -3,19 +3,18 @@ package main
 import (
 	"embed"
 	"fmt"
+
+	"github.com/cchirag/ira/internal/config"
+	"github.com/cchirag/ira/internal/spawn"
 )
 
 //go:embed bin/*
 var binaryFS embed.FS
 
 func main() {
-	entries, err := binaryFS.ReadDir("bin")
-	if err != nil {
-		fmt.Printf("error reading binary fs: %s", err.Error())
-		return
+	if err := spawn.RunDaemon(binaryFS); err != nil {
+		fmt.Println("error strting daemon: ", err.Error())
 	}
-	for _, entry := range entries {
-		fmt.Println("entry: ", entry.Name())
-	}
-	fmt.Println("Hello World")
+	fmt.Printf("Config: %v+", config.Current)
+	fmt.Println("Welcome to Ira!!")
 }

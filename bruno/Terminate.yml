@@ -1,11 +1,11 @@
 info:
-  name: Ping
+  name: Terminate
   type: grpc
-  seq: 1
+  seq: 3
 
 grpc:
   url: "{{SOCKET}}"
-  method: /session.v1.RootService/Ping
+  method: /session.v1.RootService/Terminate
   methodType: unary
   message: "{}"
   auth: inherit
