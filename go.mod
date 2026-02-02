@@ -6,6 +6,7 @@ toolchain go1.24.12
 
 require (
 	github.com/google/uuid v1.6.0
+	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.3
 	github.com/matoous/go-nanoid/v2 v2.1.0
 	go.etcd.io/bbolt v1.4.3
 	golang.org/x/sys v0.38.0

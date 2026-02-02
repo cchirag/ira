@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net"
 	"os"
@@ -13,10 +14,17 @@ import (
 	"github.com/cchirag/ira/internal/services/session"
 	rootProtoV1 "github.com/cchirag/ira/proto/gen/services/v1/root"
 	sessionProtov1 "github.com/cchirag/ira/proto/gen/services/v1/session"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"go.etcd.io/bbolt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
+
+func InterceptorLogger() logging.Logger {
+	return logging.LoggerFunc(func(ctx context.Context, lvl logging.Level, msg string, fields ...any) {
+		log.Printf("[%d] %s %v", lvl, msg, fields)
+	})
+}
 
 func main() {
 	logFile, err := os.OpenFile(config.Current.DaemonLogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
@@ -67,7 +75,11 @@ func main() {
 
 	closeCh := make(chan struct{})
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			logging.UnaryServerInterceptor(InterceptorLogger()),
+		),
+	)
 
 	rootProtoV1.RegisterRootServiceServer(grpcServer, &root.Service{
 		Db:      db,
@@ -79,6 +91,7 @@ func main() {
 	})
 
 	reflection.Register(grpcServer)
+
 	log.Println("gRPC services registered")
 
 	sigCh := make(chan os.Signal, 1)

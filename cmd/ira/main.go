@@ -4,7 +4,6 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/cchirag/ira/internal/config"
 	"github.com/cchirag/ira/internal/spawn"
 )
 
@@ -15,6 +14,5 @@ func main() {
 	if err := spawn.RunDaemon(binaryFS); err != nil {
 		fmt.Println("error strting daemon: ", err.Error())
 	}
-	fmt.Printf("Config: %v+", config.Current)
 	fmt.Println("Welcome to Ira!!")
 }

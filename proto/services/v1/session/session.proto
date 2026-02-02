@@ -1,29 +1,9 @@
 syntax = "proto3";
 
-package root.v1;
+package session.v1;
 
 import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/cchirag/ira/proto/gen/services/v1/session;sessionProtov1";
 
-service SessionService {
-  rpc NewSession(NewSessionRequest) returns (NewSessionResponse);
-}
-
-enum SessionStatus {
-  ATTACHED = 0;
-  DETACHED = 1;
-  STOPPED = 2;
-}
-
-message NewSessionRequest {
-  string name = 1;
-  string template = 2;
-}
-
-message NewSessionResponse {
-  string name = 1;
-  string template = 2;
-  google.protobuf.Timestamp created_at = 3;
-  SessionStatus status = 4;
-}
+service SessionService {}

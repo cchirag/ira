@@ -2,8 +2,9 @@ package root
 
 import (
 	"context"
+	"os"
 
-	"github.com/cchirag/ira/internal/core"
+	"github.com/cchirag/ira/internal/config"
 	rootProtov1 "github.com/cchirag/ira/proto/gen/services/v1/root"
 	"go.etcd.io/bbolt"
 )
@@ -14,37 +15,26 @@ type Service struct {
 	CloseCh chan struct{}
 }
 
-func (s *Service) Ping(ctx context.Context, request *rootProtov1.PingRequest) (*rootProtov1.PingResponse, error) {
-	var db bool
-	if s.Db != nil {
-		db = true
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
 	}
+	return err == nil && !info.IsDir()
+}
 
-	return &rootProtov1.PingResponse{
-		Db: db,
+func (s *Service) Health(ctx context.Context, request *rootProtov1.HealthRequest) (*rootProtov1.HealthResponse, error) {
+	return &rootProtov1.HealthResponse{
+		Db:     fileExists(config.Current.DaemonDBPath),
+		Mode:   config.Current.Mode,
+		Log:    fileExists(config.Current.DaemonLogPath),
+		Socket: fileExists(config.Current.DaemonSocketPath),
 	}, nil
 }
 
-func (s *Service) NewSession(ctx context.Context, request *rootProtov1.NewSessionRequest) (*rootProtov1.NewSessionResponse, error) {
-	session := new(rootProtov1.NewSessionResponse)
-	if err := s.Db.Update(func(tx *bbolt.Tx) error {
-		s, err := core.NewSession(tx, request.Name)
-		if err != nil {
-			return err
-		}
-
-		session.Id = s.ID.String()
-		session.Name = s.Name
-
-		return nil
-	}); err != nil {
-		return nil, err
-	}
-
-	return session, nil
-}
-
-func (s *Service) Terminate(ctx context.Context, request *rootProtov1.TerminateRequest) (*rootProtov1.TerminateResponse, error) {
+func (s *Service) Shutdown(ctx context.Context, request *rootProtov1.ShutdownRequest) (*rootProtov1.ShutdownResponse, error) {
 	close(s.CloseCh)
-	return &rootProtov1.TerminateResponse{}, nil
+	return &rootProtov1.ShutdownResponse{
+		Message: "ira daemon shutting down",
+	}, nil
 }

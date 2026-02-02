@@ -1,11 +1,11 @@
 info:
-  name: Terminate
+  name: Health
   type: grpc
-  seq: 3
+  seq: 1
 
 grpc:
   url: "{{SOCKET}}"
-  method: /session.v1.RootService/Terminate
+  method: /session.v1.RootService/Health
   methodType: unary
   message: "{}"
   auth: inherit
